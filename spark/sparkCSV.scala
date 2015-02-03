@@ -16,22 +16,12 @@ return y.format(tmp);
 
 val JapanData = sc.textFile("data_1MB.csv").cache()
 
-def dropHeader(data: RDD[String]): RDD[String] = {
-         data.mapPartitionsWithIndex((idx, lines) => {
-           if (idx == 0) {
-             lines.drop(1)
-           }
-           lines
-         })
-       }
-
-val withoutHeader: RDD[String] = dropHeader(JapanData)
 
 val result = JapanData.mapPartitions(lines => {
          val parser = new CSVParser(';')
          lines.map(line => {
            val columns = parser.parseLine(line)
-           (ArrondisDate(columns(0),simpleDateFormat),columns(1).substring(0,3),columns(4),columns(2),columns(3))
+           (ArrondisDate(columns(0),simpleDateFormat),columns(1).substring(0,3),columns(4).toInt,columns(2).toFloat,columns(3).toFloat)
          })
        })
        

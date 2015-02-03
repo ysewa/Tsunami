@@ -3,6 +3,15 @@ import java.text.SimpleDateFormat
 import org.apache.spark.rdd.RDD
 import au.com.bytecode.opencsv.CSVParser
 
+/***************************************************************/
+// SET THE WARNING LEVEL
+import org.apache.log4j.{Level,Logger}
+import org.apache.log4j.{Level, Logger}
+val level=Level.WARN
+Logger.getLogger("org").setLevel(level)
+Logger.getLogger("akka").setLevel(level)
+/****************************************************************/
+
 val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
 
 def ArrondisDate(t:String,y:SimpleDateFormat):String ={
@@ -31,11 +40,11 @@ result.collect();
 
 /*
 import java.io.StringReader
-import au.code.bytecode.opencsv.CSVReader
+import au.com.bytecode.opencsv.CSVReader
 
 
-val result = JapanData.map{ line => val reader = new CSVReader(new StringReader(line));reader.readNext();}
+val result2 = JapanData.map{ line => val reader = new CSVReader(new StringReader(line),';');reader.readNext();}
 
-val transform = result.map{x=> (ArrondisDate(x(0),simpleDateFormat),x(1).substring(0,3),x(4),x(2),x(3))}
+val transform = result2.map{x=> (ArrondisDate(x(0),simpleDateFormat),x(1).substring(0,3),x(4).toInt,x(2).toFloat,x(3).toFloat)}
 
 */

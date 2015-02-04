@@ -55,7 +55,7 @@ def Requetage(SeismeLatitude,SeismeLongitude, timestampTdT):
     Intervalles=[time.strftime('%Y-%m-%d %H:%M')]
     Result = []
     # select an hour from timestampTdT
-    for i in range(10,70,10):
+    for i in range(10,1450,10):
         time = time+datetime.timedelta(0,0,0,0,10,0,0)
         # convert time to string
         strTime = time.strftime('%Y-%m-%d %H:%M')
@@ -64,7 +64,8 @@ def Requetage(SeismeLatitude,SeismeLongitude, timestampTdT):
     for ville in Villes:
         for t in Intervalles:
             Result.append(session.execute("SELECT Tel, lat, long FROM Tsunami_test1 WHERE T = %s AND Id_Ville = %s;", (t, ville)))
-    return Result
+    Result = [item for sublist in Result for item in sublist]
+return Result
 
 
 #------------------------------------------------------------------------------------------------#

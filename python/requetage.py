@@ -37,6 +37,8 @@ session.execute("INSERT INTO Tsunami_test1 (T, Id_Ville, tel, lat, long) VALUES(
 #-------------------------------------------------------------------------------------------------#
 from selection_villes import findListVilles
 import datetime
+from cassandra.query import BatchStatement
+from cassandra.query import SimpleStatement
 
 # round hour e.g. 23:44 -> 23:40
 def round_up(tm):
@@ -46,26 +48,45 @@ def round_up(tm):
     newtime = newtime.replace(second=0)
     return newtime
 
+def insertbatch(rowsToAdd,session):
+    batch = BatchStatement()
+    for row in rowsToAdd:
+        batch.add(SimpleStatement("INSERT INTO cassandraresult(tel,lat,long) values(%s,%s,%s)"),(row.tel,row.lat,row.long))
+    session.execute(batch)
+
+
 # select Tel, lat and long being in the cities in the seism area
 def Requetage(SeismeLatitude,SeismeLongitude, timestampTdT):
     # select villes
-    Villes=findListVilles(SeismeLatitude,SeismeLongitude)
-    # convert string to datetime
-    time = round_up(datetime.datetime.strptime(timestampTdT, '%Y-%m-%d %H:%M'))
-    Intervalles=[time.strftime('%Y-%m-%d %H:%M')]
-    Result = []
-    # select an hour from timestampTdT
-    for i in range(10,1450,10):
-        time = time+datetime.timedelta(0,0,0,0,10,0,0)
-        # convert time to string
-        strTime = time.strftime('%Y-%m-%d %H:%M')
-        Intervalles.append(strTime)
-    # request on CASSANDRA
-    for ville in Villes:
-        for t in Intervalles:
-            Result.append(session.execute("SELECT Tel, lat, long FROM Tsunami_test1 WHERE T = %s AND Id_Ville = %s;", (t, ville)))
-    Result = [item for sublist in Result for item in sublist]
-return Result
+Villes=findListVilles(SeismeLatitude,SeismeLongitude)
+# convert string to datetime
+time = round_up(datetime.datetime.strptime(timestampTdT, '%Y-%m-%d %H:%M'))
+Intervalles=[time.strftime('%Y-%m-%d %H:%M')]
+Result = []
+# select an hour from timestampTdT
+for i in range(10,1450,10):
+    time = time+datetime.timedelta(0,0,0,0,10,0,0)
+    # convert time to string
+    strTime = time.strftime('%Y-%m-%d %H:%M')
+    Intervalles.append(strTime)
+# request on CASSANDRA
+for ville in Villes:
+    for t in Intervalles:
+        Result = session.execute("SELECT Tel, lat, long FROM Tsunami_test1 WHERE T = %s AND Id_Ville = %s;", (t, ville))
+        Batch = []
+        batchSize=0
+        for row in (Result):
+            batchSize=batchSize+1
+            Batch.append(row)
+            if(batchSize==10000):
+                 insertbatch(Batch,session)
+                 Batch = []
+        insertbatch(Batch,session)
+
+            '''for row in Result:
+                session.execute("INSERT INTO cassandraresult(tel,lat,longi) values(%s,%s,%s);",(row.tel,row.lat,row.long))
+            '''
+    return Result
 
 
 #------------------------------------------------------------------------------------------------#

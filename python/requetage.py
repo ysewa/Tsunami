@@ -38,29 +38,32 @@ session.execute("INSERT INTO Tsunami_test1 (T, Id_Ville, tel, lat, long) VALUES(
 from selection_villes import findListVilles
 import datetime
 
+# round hour e.g. 23:44 -> 23:40
+def round_up(tm):
+    upmins = math.ceil(float(tm.minute)/10-1)*10
+    diffmins = upmins - tm.minute
+    newtime = tm + datetime.timedelta(minutes=diffmins)
+    newtime = newtime.replace(second=0)
+    return newtime
+
 # select Tel, lat and long being in the cities in the seism area
 def Requetage(SeismeLatitude,SeismeLongitude, timestampTdT):
     # select villes
     Villes=findListVilles(SeismeLatitude,SeismeLongitude)
     # convert string to datetime
-    time = datetime.datetime.strptime(timestampTdT, '%Y-%m-%d %H:%M')
-    Intervalles=[timestampTdT]
+    time = round_up(datetime.datetime.strptime(timestampTdT, '%Y-%m-%d %H:%M'))
+    Intervalles=[time.strftime('%Y-%m-%d %H:%M')]
     Result = []
     # select an hour from timestampTdT
     for i in range(10,70,10):
-        time = time+datetime.timedelta(0,0,0,0,i,0,0)
+        time = time+datetime.timedelta(0,0,0,0,10,0,0)
         # convert time to string
         strTime = time.strftime('%Y-%m-%d %H:%M')
         Intervalles.append(strTime)
-
-    #print Intervalles
-    #print Villes
-
     # request on CASSANDRA
     for ville in Villes:
         for t in Intervalles:
             Result.append(session.execute("SELECT Tel, lat, long FROM Tsunami_test1 WHERE T = %s AND Id_Ville = %s;", (t, ville)))
-
     return Result
 
 

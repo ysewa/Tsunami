@@ -37,6 +37,23 @@ session.execute("INSERT INTO Tsunami_test1 (T, Id_Ville, tel, lat, long) VALUES(
 #-------------------------------------------------------------------------------------------------#
 from selection_villes import findListVilles, getClosest
 import datetime
+from cassandra.query import BatchStatement
+from cassandra.query import SimpleStatement
+
+# round hour e.g. 23:44 -> 23:40
+def round_up(tm):
+    upmins = math.ceil(float(tm.minute)/10-1)*10
+    diffmins = upmins - tm.minute
+    newtime = tm + datetime.timedelta(minutes=diffmins)
+    newtime = newtime.replace(second=0)
+    return newtime
+
+def insertbatch(rowsToAdd,session):
+    batch = BatchStatement()
+    for row in rowsToAdd:
+        batch.add(SimpleStatement("INSERT INTO cassandraresult(tel,lat,long) values(%s,%s,%s)"),(row.tel,row.lat,row.long))
+    session.execute(batch)
+
 
 #SHUTDOWN ONE NODE
 nodeToCut=getClosest(SeismeLatitude,SeismeLongitude)
@@ -47,6 +64,7 @@ def Requetage(SeismeLatitude,SeismeLongitude, timestampTdT):
     # select villes
 Villes=findListVilles(SeismeLatitude,SeismeLongitude)
 # convert string to datetime
+<<<<<<< HEAD
 time = datetime.datetime.strptime(timestampTdT, "%Y-%m-%d %H:%M")
 print time
 Intervalles=[timestampTdT]
@@ -66,6 +84,34 @@ for ville in Villes:
     for t in Intervalles:
         Result.append(session.execute("SELECT Tel, lat, long FROM Tsunami_test2 WHERE T = %s AND Id_Ville = %s;", (t, ville)))
 
+=======
+time = round_up(datetime.datetime.strptime(timestampTdT, '%Y-%m-%d %H:%M'))
+Intervalles=[time.strftime('%Y-%m-%d %H:%M')]
+Result = []
+# select an hour from timestampTdT
+for i in range(10,1450,10):
+    time = time+datetime.timedelta(0,0,0,0,10,0,0)
+    # convert time to string
+    strTime = time.strftime('%Y-%m-%d %H:%M')
+    Intervalles.append(strTime)
+# request on CASSANDRA
+for ville in Villes:
+    for t in Intervalles:
+        Result = session.execute("SELECT Tel, lat, long FROM Tsunami_test1 WHERE T = %s AND Id_Ville = %s;", (t, ville))
+        Batch = []
+        batchSize=0
+        for row in (Result):
+            batchSize=batchSize+1
+            Batch.append(row)
+            if(batchSize==10000):
+                 insertbatch(Batch,session)
+                 Batch = []
+        insertbatch(Batch,session)
+
+            '''for row in Result:
+                session.execute("INSERT INTO cassandraresult(tel,lat,longi) values(%s,%s,%s);",(row.tel,row.lat,row.long))
+            '''
+>>>>>>> 31e73aaebc57b0cb9570ce3fff4719359d566978
     return Result
 
 

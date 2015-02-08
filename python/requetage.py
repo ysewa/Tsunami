@@ -17,15 +17,15 @@ ssh -nNT -L 9042:127.0.0.1:9042 bigdata@192.168.56.101
 """
 
 # CONNECTION: After the driver connects to one of these nodes it will automatically discover the rest of the nodes in the cluster and connect to them, so you don’t need to list every node in your cluster.
-cluster = Cluster(['127.0.0.1']) # 127.0.0.1 parce qu'on a créé un tunnel ssh
+cluster = Cluster() # 127.0.0.1 parce qu'on a créé un tunnel ssh
 session = cluster.connect()
 
 # DROP keyspace and table
 #session.execute("DROP Keyspace test1")
 
 # CREATE keyspace
-session.execute("CREATE KEYSPACE test1 WITH replication = {'class': 'SimpleStrategy','replication_factor': 3 };")
-session.execute("USE test1");
+#session.execute("CREATE KEYSPACE test1 WITH replication = {'class': 'SimpleStrategy','replication_factor': 3 };")
+session.execute("USE ksspark");
 
 # CREATE TABLE
 session.execute("CREATE TABLE Tsunami_test1 (T timestamp, Id_Ville text, tel int, lat float, long float, PRIMARY KEY ((T, Id_Ville), tel));")
@@ -35,31 +35,36 @@ session.execute("INSERT INTO Tsunami_test1 (T, Id_Ville, tel, lat, long) VALUES(
 
 
 #-------------------------------------------------------------------------------------------------#
-from selection_villes import findListVilles
+from selection_villes import findListVilles, getClosest
 import datetime
+
+#SHUTDOWN ONE NODE
+nodeToCut=getClosest(SeismeLatitude,SeismeLongitude)
+##ccm node1 stop
 
 # select Tel, lat and long being in the cities in the seism area
 def Requetage(SeismeLatitude,SeismeLongitude, timestampTdT):
     # select villes
-    Villes=findListVilles(SeismeLatitude,SeismeLongitude)
-    # convert string to datetime
-    time = datetime.datetime.strptime(timestampTdT, '%Y-%m-%d %H:%M')
-    Intervalles=[timestampTdT]
-    Result = []
-    # select an hour from timestampTdT
-    for i in range(10,70,10):
-        time = time+datetime.timedelta(0,0,0,0,i,0,0)
-        # convert time to string
-        strTime = time.strftime('%Y-%m-%d %H:%M')
-        Intervalles.append(strTime)
+Villes=findListVilles(SeismeLatitude,SeismeLongitude)
+# convert string to datetime
+time = datetime.datetime.strptime(timestampTdT, "%Y-%m-%d %H:%M")
+print time
+Intervalles=[timestampTdT]
+Result = []
+# select an hour from timestampTdT
+for i in range(10,70,10):
+    time = time+datetime.timedelta(minutes = 10 )
+    # convert time to string
+    strTime = time.strptime(time,"%Y-%m-%d %H:%M")
+    Intervalles.append(strTime)
 
-    #print Intervalles
-    #print Villes
+#print Intervalles
+#print Villes
 
-    # request on CASSANDRA
-    for ville in Villes:
-        for t in Intervalles:
-            Result.append(session.execute("SELECT Tel, lat, long FROM Tsunami_test1 WHERE T = %s AND Id_Ville = %s;", (t, ville)))
+# request on CASSANDRA
+for ville in Villes:
+    for t in Intervalles:
+        Result.append(session.execute("SELECT Tel, lat, long FROM Tsunami_test2 WHERE T = %s AND Id_Ville = %s;", (t, ville)))
 
     return Result
 

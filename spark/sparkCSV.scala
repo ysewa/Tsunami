@@ -12,8 +12,6 @@ Logger.getLogger("org").setLevel(level)
 Logger.getLogger("akka").setLevel(level)
 /****************************************************************/
 
-val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-
 def ArrondisDate(t:String,y:SimpleDateFormat):String ={
 val tmp = y.parse(t);
 val minutes= tmp.getMinutes();
@@ -23,21 +21,33 @@ return y.format(tmp);
 }
 
 
-val JapanData = sc.textFile("data_1MB.csv").cache()
+//val JapanData = sc.textFile("data_1MB.csv",5).cache()
 
 
 val result = JapanData.mapPartitions(lines => {
          val parser = new CSVParser(';')
          lines.map(line => {
            val columns = parser.parseLine(line)
-           (ArrondisDate(columns(0),simpleDateFormat),columns(1).substring(0,3),columns(4).toInt,columns(2).toFloat,columns(3).toFloat)
+           ((columns(0).substring(0,15)+"0:00",columns(1).substring(0,3),columns(2).toFloat,columns(3).toFloat),(columns(4).toInt))
+         })
+       }).groupByKey().map(x=>(x._1._1,x._1._2,x._1._3,x._1._4,x._2)).saveToCassandra("test","test_spark_set")
+  
+  //Commandes tests     
+result.groupByKey(20).map(x=>(x._1._1,x._1._2,x._1._3,x._1._4,x._2)).take(2)
+val resultWithKey = result.map(x => (x._1+" "+x._2,x))
+val sortedresultWithKey = resultWithKey.sortByKey()
+
+
+
+result.saveToCassandra("kspace","tableName")
+
+val parser = new CSVParser(';')
+val result = JapanData.map(line => {
+           val columns = parser.parseLine(line)
+           (columns(0).substring(0,15)+"0:00",columns(1).substring(0,3),columns(4).toInt,columns(2).toFloat,columns(3).toFloat)
          })
        })
-       
-
-
-result.collect();
-
+    
 /*
 import java.io.StringReader
 import au.com.bytecode.opencsv.CSVReader

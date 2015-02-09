@@ -32,6 +32,7 @@ return y.format(tmp);
 //Les temps indiqués le sont pour 1 GB sauf exception 
 
 //Test avec nouvelle structure de table : ((t,id_ville),lat,longi,set(Tel))
+//1Go : 32 secondes de mapPartition  + 10 minutes
 val result = JapanData.mapPartitions(lines => {
          val parser = new CSVParser(';')
          lines.map(line => {
@@ -41,18 +42,18 @@ val result = JapanData.mapPartitions(lines => {
        }).groupByKey(10).map(x=>(x._1._1,x._1._2,x._1._3,x._1._4,x._2)).saveToCassandra("test","test_spark_set")
   
   //Commandes tests 
-//Test avec nouvelle structure de table : ((t,id_ville),lat,longi,concatenation text : 3 minutes
-
+//Test avec nouvelle structure de table : ((t,id_ville),lat,longi,concatenation text : 3 minutes +++
 val result = JapanData.mapPartitions(lines => {
          val parser = new CSVParser(';')
          lines.map(line => {
            val columns = parser.parseLine(line)
-           ((columns(0).substring(0,15)+"0:00",columns(1).substring(0,3),columns(2),columns(3)),(columns(4)))
-         })
-       }).reduceByKey(_+_,10).map(x=>(x._1._1,x._1._2,x._1._3,x._1._4,x._2)).saveToCassandra("test","test_spark_texttels")
-  
+           ((columns(0).substring(0,15)+"0:00",columns(1).substring(0,3),columns(2),columns(3)),(columns(4)+"|"))
+         })   }).reduceByKey(_+_,8).map(x=>(x._1._1,x._1._2,x._1._3,x._1._4,x._2)).saveToCassandra("test","test_spark_texttels")
+    
 
-//Test avec nouvelle structure de table : ((t,id_ville),set(text : (lat+"/"longi+"/"+(Tel) 5,7 minutes
+//Test avec nouvelle structure de table : ((t,id_ville),set(text : (lat+"/"longi+"/"+(Tel) 
+//map : 1 minutes 
+//cassandra : 3 minutes
 val result = JapanData.mapPartitions(lines => {
          val parser = new CSVParser(';')
          lines.map(line => {
@@ -62,7 +63,10 @@ val result = JapanData.mapPartitions(lines => {
        }).groupByKey(10).map(x=>(x._1._1,x._1._2,x._2)).saveToCassandra("test","test_spark_unique_set")
   
 
-//Test avec nouvelle structure de table : ((t,id_ville),Text ( grosse concaténation=) :  ~ 60 secondes
+//Test avec nouvelle structure de table : ((t,id_ville),Text ( grosse concaténation=) :  
+//map :  41 s
+// cassandra : 48s
+//~ 60 secondes
 //10 Go : ~ 10 minutes 
 val result = JapanData.mapPartitions(lines => {
          val parser = new CSVParser(';')
@@ -70,7 +74,7 @@ val result = JapanData.mapPartitions(lines => {
            val columns = parser.parseLine(line)
            ((columns(0).substring(0,15)+"0:00",columns(1).substring(0,3)),(columns(2)+"/"+columns(3)+"/"+columns(4)+"|"))
          })
-       }).reduceByKey(_ + _,10).map(x=>(x._1._1,x._1._2,x._2)).saveToCassandra("test","test_spark_bigtext")
+       }).reduceByKey(_ + _,8).map(x=>(x._1._1,x._1._2,x._2)).saveToCassandra("test","test_spark_bigtext")
   
 
 result.saveToCassandra("kspace","tableName")

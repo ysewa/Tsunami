@@ -11,14 +11,7 @@ val level=Level.WARN
 Logger.getLogger("org").setLevel(level)
 Logger.getLogger("akka").setLevel(level)
 /****************************************************************/
-/*
-def ArrondisDate(t:String,y:SimpleDateFormat):String ={
-val tmp = y.parse(t);
-val minutes= tmp.getMinutes();
-tmp.setMinutes(minutes+10-minutes%10);
-tmp.setSeconds(0);
-return y.format(tmp);
-}*/
+
 /**
  * CREATE KEYSPACE test WITH replication = {
   'class': 'NetworkTopologyStrategy',
@@ -26,6 +19,8 @@ return y.format(tmp);
 };
 
 dse spark --executor-cores 2 --num-executors 4 --executor-memory 1G
+dse spark --executor-cores 6 --driver-cores 4 --num-executors 5 --executor-memory 2G --driver-memory 1G 
+
 
 sc.getConf.set("spark.cassandra.output.batch.size.bytes","1000000")
 
@@ -36,6 +31,7 @@ sc.getConf.set("spark.cassandra.output.concurrent.writes","10")
 
 
 //val JapanData = sc.textFile("s3n://bigdata-paristech/projet2014/data/data_100GB.csv ",5)
+//val JapanData = sc.textFile("s3n://AKIAI6CYHXUAK5MIGXBQ:wu9CaJS3cdZvKMeCo2sQLk4fcWmFrrR389917V9A@bigdata-paristech/projet2014/data/data_100GB.csv",200)
 
 //Les temps indiqués le sont pour 1 GB sauf exception 
 
@@ -95,23 +91,3 @@ val result = JapanData.mapPartitions(lines => {
          })
        }).reduceByKey(_ + _,80).map(x=>(x._1._1,x._1._2,x._2)).saveToCassandra("test","test_spark_bigtext")
   
-
-result.saveToCassandra("kspace","tableName")
-
-val parser = new CSVParser(';')
-val result = JapanData.map(line => {
-           val columns = parser.parseLine(line)
-           (columns(0).substring(0,15)+"0:00",columns(1).substring(0,3),columns(4).toInt,columns(2).toFloat,columns(3).toFloat)
-         })
-       })
-    
-/*
-import java.io.StringReader
-import au.com.bytecode.opencsv.CSVReader
-
-
-val result2 = JapanData.map{ line => val reader = new CSVReader(new StringReader(line),';');reader.readNext();}
-
-val transform = result2.map{x=> (ArrondisDate(x(0),simpleDateFormat),x(1).substring(0,3),x(4).toInt,x(2).toFloat,x(3).toFloat)}
-
-*/

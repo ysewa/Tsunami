@@ -11,14 +11,14 @@ val level=Level.WARN
 Logger.getLogger("org").setLevel(level)
 Logger.getLogger("akka").setLevel(level)
 /****************************************************************/
-
+/*
 def ArrondisDate(t:String,y:SimpleDateFormat):String ={
 val tmp = y.parse(t);
 val minutes= tmp.getMinutes();
 tmp.setMinutes(minutes+10-minutes%10);
 tmp.setSeconds(0);
 return y.format(tmp);
-}
+}*/
 /**
  * CREATE KEYSPACE test WITH replication = {
   'class': 'NetworkTopologyStrategy',
@@ -35,20 +35,21 @@ sc.getConf.set("spark.cassandra.output.concurrent.writes","10")
 **/
 
 
-//val JapanData = sc.textFile("data_1MB.csv",5).cache()
+//val JapanData = sc.textFile("s3n://bigdata-paristech/projet2014/data/data_100GB.csv ",5)
 
 //Les temps indiqués le sont pour 1 GB sauf exception 
 
 //Test avec nouvelle structure de table : ((t,id_ville),lat,longi,set(Tel))
 //create table test_spark_set(t timestamp, id_ville text, lat float, longi float,tels set<int>, primary key ((t,id_ville),lat));
 //1Go : 32 secondes de mapPartition  + 10 minutes
+//pas réussi à intégrer avec les R2
 val result = JapanData.mapPartitions(lines => {
          val parser = new CSVParser(';')
          lines.map(line => {
            val columns = parser.parseLine(line)
            ((columns(0).substring(0,15)+"0:00",columns(1).substring(0,3),columns(2),columns(3)),(columns(4)))
          })
-       }).groupByKey(10).map(x=>(x._1._1,x._1._2,x._1._3,x._1._4,x._2)).saveToCassandra("test","test_spark_set")
+       }).groupByKey(30).map(x=>(x._1._1,x._1._2,x._1._3,x._1._4,x._2)).saveToCassandra("test","test_spark_set")
   
   
 //Commandes tests 
@@ -60,7 +61,7 @@ val result = JapanData.mapPartitions(lines => {
          lines.map(line => {
            val columns = parser.parseLine(line)
            ((columns(0).substring(0,15)+"0:00",columns(1).substring(0,3),columns(2),columns(3)),(columns(4)+"|"))
-         })   }).reduceByKey(_+_,8).map(x=>(x._1._1,x._1._2,x._1._3,x._1._4,x._2)).saveToCassandra("test","test_spark_texttels")
+         })   }).reduceByKey(_+_,24).map(x=>(x._1._1,x._1._2,x._1._3,x._1._4,x._2)).saveToCassandra("test","test_spark_texttels")
     
 
 //Test avec nouvelle structure de table : ((t,id_ville),set(text : (lat+"/"longi+"/"+(Tel) 
@@ -74,7 +75,7 @@ val result = JapanData.mapPartitions(lines => {
            val columns = parser.parseLine(line)
            ((columns(0).substring(0,15)+"0:00",columns(1).substring(0,3)),(columns(2)+"/"+columns(3)+"/"+columns(4)))
          })
-       }).groupByKey().map(x=>(x._1._1,x._1._2,x._2)).saveToCassandra("test","test_spark_unique_set")
+       }).groupByKey(24).map(x=>(x._1._1,x._1._2,x._2)).saveToCassandra("test","test_spark_unique_set")
   
 
 //Test avec nouvelle structure de table : ((t,id_ville),Text ( grosse concaténation=) :  
@@ -83,13 +84,16 @@ val result = JapanData.mapPartitions(lines => {
 // cassandra : 48s
 //~ 60 secondes
 //10 Go : ~ 10 minutes 
+
+//avec les nouvelles machines : 3 minutes
+
 val result = JapanData.mapPartitions(lines => {
          val parser = new CSVParser(';')
          lines.map(line => {
            val columns = parser.parseLine(line)
            ((columns(0).substring(0,15)+"0:00",columns(1).substring(0,3)),(columns(2)+"/"+columns(3)+"/"+columns(4)+"|"))
          })
-       }).reduceByKey(_ + _,24).map(x=>(x._1._1,x._1._2,x._2)).saveToCassandra("test","test_spark_bigtext")
+       }).reduceByKey(_ + _,80).map(x=>(x._1._1,x._1._2,x._2)).saveToCassandra("test","test_spark_bigtext")
   
 
 result.saveToCassandra("kspace","tableName")

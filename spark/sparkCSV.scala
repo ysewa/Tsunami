@@ -14,8 +14,8 @@ Logger.getLogger("akka").setLevel(level)
 
 /**
  * CREATE KEYSPACE test WITH replication = {
-  'class': 'NetworkTopologyStrategy',
-  'Analytics': '5'
+  'class': 'SimlpleStrategy',
+  'Replication_factor': '2'
 };
 
 dse spark --executor-cores 2 --num-executors 4 --executor-memory 1G

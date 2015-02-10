@@ -31,7 +31,7 @@ sc.getConf.set("spark.cassandra.output.concurrent.writes","10")
 
 
 //val JapanData = sc.textFile("s3n://bigdata-paristech/projet2014/data/data_100GB.csv ",5)
-//val JapanData = sc.textFile("s3n://AKIAI6CYHXUAK5MIGXBQ:wu9CaJS3cdZvKMeCo2sQLk4fcWmFrrR389917V9A@bigdata-paristech/projet2014/data/data_100GB.csv",200)
+//val JapanData = sc.textFile("s3n://bigdata-paristech/projet2014/data/data_100GB.csv",200)
 
 //Les temps indiqués le sont pour 1 GB sauf exception 
 
@@ -89,5 +89,5 @@ val result = JapanData.mapPartitions(lines => {
            val columns = parser.parseLine(line)
            ((columns(0).substring(0,15)+"0:00",columns(1).substring(0,3)),(columns(2)+"/"+columns(3)+"/"+columns(4)+"|"))
          })
-       }).reduceByKey(_ + _,80).map(x=>(x._1._1,x._1._2,x._2)).saveToCassandra("test","test_spark_bigtext")
+       }).reduceByKey(_ + _).map(x=>(x._1._1,x._1._2,x._2)).saveToCassandra("test","test_spark_bigtext")
   
